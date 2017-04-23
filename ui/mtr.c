@@ -47,6 +47,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <locale.h>
 
 #include "mtr.h"
 #include "mtr-curses.h"
@@ -760,6 +761,7 @@ int main(
     int argc,
     char **argv)
 {
+    setlocale(LC_ALL, "");  // support chinese output
     struct hostent *host = NULL;
     struct hostent trhost;
     char *alptr[2];

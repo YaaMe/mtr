@@ -23,6 +23,8 @@ stamp-h1*
 /.deps/
 /packet/.deps/
 /packet/.dirstamp
+/ipip/.deps/
+/ipip/.dirstamp
 /packet/testpacket.py.log
 /packet/testpacket.py.trs
 /test-suite.log

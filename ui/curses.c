@@ -3,7 +3,7 @@
     Copyright (C) 1997,1998  Matt Kimball
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
@@ -63,6 +63,7 @@
 #include "asn.h"
 #include "display.h"
 #include "utils.h"
+#include "ipip.h"
 
 
 enum { NUM_FACTORS = 8 };
@@ -435,13 +436,14 @@ static void mtr_curses_hosts(
             if (is_printii(ctl))
                 printw(fmt_ipinfo(ctl, addr));
 #endif
+            const char *ipip_location = ipip_get_location(ctl, addr);
             if (name != NULL) {
                 if (ctl->show_ips)
-                    printw("%s (%s)", name, strlongip(ctl, addr));
+                    printw("%s (%s) %s", name, strlongip(ctl, addr), ipip_location);
                 else
-                    printw("%s", name);
+                    printw("%s %s", name, ipip_location);
             } else {
-                printw("%s", strlongip(ctl, addr));
+                printw("%s %s", strlongip(ctl, addr), ipip_location);
             }
             attroff(A_BOLD);
 
@@ -452,7 +454,7 @@ static void mtr_curses_hosts(
             hd_len = 0;
             for (i = 0; i < MAXFLD; i++) {
                 /* Ignore options that don't exist */
-                /* On the other hand, we now check the input side. Shouldn't happen, 
+                /* On the other hand, we now check the input side. Shouldn't happen,
                    can't be careful enough. */
                 j = ctl->fld_index[ctl->fld_active[i]];
                 if (j == -1)
@@ -490,13 +492,15 @@ static void mtr_curses_hosts(
                 if (is_printii(ctl))
                     printw(fmt_ipinfo(ctl, addrs));
 #endif
+
+                const char *ipip_location = ipip_get_location(ctl, addr);
                 if (name != NULL) {
                     if (ctl->show_ips)
-                        printw("%s (%s)", name, strlongip(ctl, addrs));
+                        printw("%s (%s) %s", name, strlongip(ctl, addrs), ipip_location);
                     else
-                        printw("%s", name);
+                        printw("%s %s", name, ipip_location);
                 } else {
-                    printw("%s", strlongip(ctl, addrs));
+                    printw("%s %s", strlongip(ctl, addrs), ipip_location);
                 }
                 for (k = 0; k < mplss->labels && ctl->enablempls; k++) {
                     printw("\n    [MPLS: Lbl %lu TC %u S %u TTL %u]",
@@ -656,8 +660,9 @@ static void mtr_curses_graph(
                 printw(fmt_ipinfo(ctl, addr));
 #endif
             name = dns_lookup(ctl, addr);
-            printw("%s", name ? name : strlongip(ctl, addr));
-        } else {
+            const char *ipip_location = ipip_get_location(ctl, addr);
+            printw("%s %s", name ? name : strlongip(ctl, addr), ipip_location);
+        } else
             attron(A_BOLD);
             printw("(%s)", host_error_to_string(err));
         }
@@ -827,3 +832,4 @@ void mtr_curses_clear(
     mtr_curses_close();
     mtr_curses_open(ctl);
 }
+
