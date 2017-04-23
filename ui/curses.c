@@ -63,6 +63,7 @@
 #include "asn.h"
 #include "display.h"
 #include "utils.h"
+#include "ipip.h"
 
 
 enum { NUM_FACTORS = 8 };
@@ -428,13 +429,14 @@ static void mtr_curses_hosts(
             if (is_printii(ctl))
                 printw(fmt_ipinfo(ctl, addr));
 #endif
+            const char *ipip_location = ipip_get_location(ctl, addr);
             if (name != NULL) {
                 if (ctl->show_ips)
-                    printw("%s (%s)", name, strlongip(ctl, addr));
+                    printw("%s (%s) %s", name, strlongip(ctl, addr), ipip_location);
                 else
-                    printw("%s", name);
+                    printw("%s %s", name, ipip_location);
             } else {
-                printw("%s", strlongip(ctl, addr));
+                printw("%s %s", strlongip(ctl, addr), ipip_location);
             }
             attroff(A_BOLD);
 
@@ -483,13 +485,15 @@ static void mtr_curses_hosts(
                 if (is_printii(ctl))
                     printw(fmt_ipinfo(ctl, addrs));
 #endif
+
+                const char *ipip_location = ipip_get_location(ctl, addr);
                 if (name != NULL) {
                     if (ctl->show_ips)
-                        printw("%s (%s)", name, strlongip(ctl, addrs));
+                        printw("%s (%s) %s", name, strlongip(ctl, addrs), ipip_location);
                     else
-                        printw("%s", name);
+                        printw("%s %s", name, ipip_location);
                 } else {
-                    printw("%s", strlongip(ctl, addrs));
+                    printw("%s %s", strlongip(ctl, addrs), ipip_location);
                 }
                 for (k = 0; k < mplss->labels && ctl->enablempls; k++) {
                     printw("\n    [MPLS: Lbl %lu Exp %u S %u TTL %u]",
@@ -642,7 +646,8 @@ static void mtr_curses_graph(
                 printw(fmt_ipinfo(ctl, addr));
 #endif
             name = dns_lookup(ctl, addr);
-            printw("%s", name ? name : strlongip(ctl, addr));
+            const char *ipip_location = ipip_get_location(ctl, addr);
+            printw("%s %s", name ? name : strlongip(ctl, addr), ipip_location);
         } else
             printw("???");
         attroff(A_BOLD);

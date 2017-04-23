@@ -57,7 +57,9 @@ mtr_SOURCES = ui/mtr.c ui/mtr.h \
               packet/cmdparse.c packet/cmdparse.h \
               ui/mtr-curses.h \
               img/mtr_icon.xpm \
-              ui/mtr-gtk.h
+              ui/mtr-gtk.h \
+              ipip/ipip.c ipip/ipip.h \
+              ui/ipip.c ui/ipip.h
 
 if WITH_ERROR
 mtr_SOURCES += \
