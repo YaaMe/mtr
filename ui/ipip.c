@@ -9,14 +9,14 @@
 #include <netinet/in.h>
 
 const char *ipip_get_location(struct mtr_ctl *ctl, ip_t *ip) {
-    ipipdb_init("/usr/local/share/17monipdb.dat");
+    ipipdb_init("/usr/local/share/17monipdb.datx");
     static char buf[256];
     buf[0] = '\0';
-    uint32_t res_ip;
+    unsigned int res_ip;
 #ifdef ENABLE_IPV6
 #define ip6 ip->s6_addr
     if (ctl->af == AF_INET) {
-        uint32_t be_ip = *(uint32_t *)ip6;
+        unsigned int be_ip = *(unsigned int *)ip6;
         res_ip = htonl(be_ip);
     } else {
         return buf;
