@@ -11,9 +11,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "probe.h"
@@ -87,6 +87,7 @@ int decode_address_string(
     for the probe.
 */
 int resolve_probe_addresses(
+    struct net_state_t *net_state,
     const struct probe_param_t *param,
     struct sockaddr_storage *dest_sockaddr,
     struct sockaddr_storage *src_sockaddr)
@@ -104,6 +105,22 @@ int resolve_probe_addresses(
     } else {
         if (find_source_addr(src_sockaddr, dest_sockaddr)) {
             return -1;
+        }
+    }
+    /* DGRAM ICMP id is taken from src_port not from ICMP header */
+    if (param->protocol == IPPROTO_ICMP) {
+        if (src_sockaddr->ss_family == AF_INET) {
+            if (!net_state->platform.ip4_socket_raw) {
+                struct sockaddr_in *sin_src =
+                    (struct sockaddr_in *) src_sockaddr;
+                sin_src->sin_port = htons(getpid());
+            }
+        } else if (src_sockaddr->ss_family == AF_INET6) {
+            if (!net_state->platform.ip6_socket_raw) {
+                struct sockaddr_in6 *sin6_src =
+                    (struct sockaddr_in6 *) src_sockaddr;
+                sin6_src->sin6_port = htons(getpid());
+            }
         }
     }
 
@@ -248,6 +265,8 @@ void respond_to_probe(
 
     if (icmp_type == ICMP_TIME_EXCEEDED) {
         result = "ttl-expired";
+    } else if (icmp_type == ICMP_DEST_UNREACH) {
+        result = "no-route";
     } else {
         assert(icmp_type == ICMP_ECHOREPLY);
         result = "reply";

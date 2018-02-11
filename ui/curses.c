@@ -11,9 +11,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "config.h"
@@ -158,6 +158,7 @@ int mtr_curses_keyaction(
 
     switch (c) {
     case 'q':
+    case -1:
     case 3:
         return ActionQuit;
     case 12:
@@ -236,7 +237,7 @@ int mtr_curses_keyaction(
 
         if (f <= 0.0)
             return ActionNone;
-        if (getuid() != 0 && f < 1.0)
+        if (!running_as_root() && (f < 1.0))
             return ActionNone;
         ctl->WaitTime = f;
 
@@ -405,6 +406,8 @@ static void mtr_curses_hosts(
     int at;
     struct mplslen *mpls, *mplss;
     ip_t *addr, *addrs;
+    int addrcmp_result;
+    int err;
     int y;
     char *name;
 
@@ -417,11 +420,14 @@ static void mtr_curses_hosts(
 
     for (at = net_min(ctl) + ctl->display_offset; at < max; at++) {
         printw("%2d. ", at + 1);
+        err = net_err(at);
         addr = net_addr(at);
         mpls = net_mpls(at);
 
-        if (addrcmp((void *) addr, (void *) &ctl->unspec_addr, ctl->af) !=
-            0) {
+        addrcmp_result = addrcmp(
+            (void *) addr, (void *) &ctl->unspec_addr, ctl->af);
+
+        if (err == 0 && addrcmp_result != 0) {
             name = dns_lookup(ctl, addr);
             if (!net_up(at))
                 attron(A_BOLD);
@@ -502,9 +508,10 @@ static void mtr_curses_hosts(
                 }
                 attroff(A_BOLD);
             }
-
         } else {
-            printw("???");
+            attron(A_BOLD);
+            printw("(%s)", host_error_to_string(err));
+            attroff(A_BOLD);
         }
 
         printw("\n");
@@ -622,7 +629,7 @@ static void mtr_curses_graph(
     int startstat,
     int cols)
 {
-    int max, at, y;
+    int max, at, y, err;
     ip_t *addr;
     char *name;
     int __unused_int ATTRIBUTE_UNUSED;
@@ -633,14 +640,20 @@ static void mtr_curses_graph(
         printw("%2d. ", at + 1);
 
         addr = net_addr(at);
+        err = net_err(at);
+
         if (!addr) {
-            printw("???\n");
+            printw("(%s)", host_error_to_string(err));
             continue;
         }
 
-        if (!net_up(at))
-            attron(A_BOLD);
-        if (addrcmp((void *) addr, (void *) &ctl->unspec_addr, ctl->af)) {
+        if (err == 0
+            && addrcmp((void *) addr, (void *) &ctl->unspec_addr, ctl->af)) {
+
+            if (!net_up(at)) {
+                attron(A_BOLD);
+            }
+
 #ifdef HAVE_IPINFO
             if (is_printii(ctl))
                 printw(fmt_ipinfo(ctl, addr));
@@ -648,7 +661,10 @@ static void mtr_curses_graph(
             name = dns_lookup(ctl, addr);
             const char *ipip_location = ipip_get_location(ctl, addr);
             printw("%s %s", name ? name : strlongip(ctl, addr), ipip_location);
-        } else
+        } else {
+            attron(A_BOLD);
+            printw("(%s)", host_error_to_string(err));
+        }
             printw("???");
         attroff(A_BOLD);
 

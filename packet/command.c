@@ -11,9 +11,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "command.h"
@@ -321,6 +321,7 @@ void send_probe_command(
     param.ttl = 255;
     param.packet_size = 64;
     param.timeout = 10;
+    param.is_probing_byte_order = false;
 
     for (i = 0; i < command->argument_count; i++) {
         name = command->argument_name[i];

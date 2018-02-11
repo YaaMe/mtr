@@ -11,9 +11,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "cmdpipe.h"
@@ -204,6 +204,7 @@ int check_packet_features(
 }
 
 
+extern char *myname;
 /*
     Execute mtr-packet, allowing the MTR_PACKET evironment to override
     the PATH when locating the executable.
@@ -212,6 +213,7 @@ static
 void execute_packet_child(
     void)
 {
+    char buf[256];
     /*
        Allow the MTR_PACKET environment variable to override
        the path to the mtr-packet executable.  This is necessary
@@ -227,6 +229,14 @@ void execute_packet_child(
        or MTR_PACKET environment variable.
      */
     execlp(mtr_packet_path, "mtr-packet", (char *) NULL);
+
+    /* 
+       Then try to find it where WE were executed from.  
+     */
+    strncpy (buf, myname, 240);
+    strcat (buf, "-packet");
+    mtr_packet_path = buf;
+    execl(mtr_packet_path, "mtr-packet", (char *) NULL);
 
     /*
        If mtr-packet is not found, try to use mtr-packet from current directory
@@ -611,16 +621,6 @@ void handle_reply_errors(
 
     reply_name = reply->command_name;
 
-    if (!strcmp(reply_name, "no-route")) {
-        display_close(ctl);
-        error(EXIT_FAILURE, 0, "No route to host");
-    }
-
-    if (!strcmp(reply_name, "network-down")) {
-        display_close(ctl);
-        error(EXIT_FAILURE, 0, "Network down");
-    }
-
     if (!strcmp(reply_name, "probes-exhausted")) {
         display_close(ctl);
         error(EXIT_FAILURE, 0, "Probes exhausted");
@@ -667,6 +667,7 @@ void handle_command_reply(
     struct command_t reply;
     ip_t fromaddress;
     int seq_num;
+    int err;
     int round_trip_time;
     char *reply_name;
     struct mplslen mpls;
@@ -688,8 +689,16 @@ void handle_command_reply(
     seq_num = reply.token;
     reply_name = reply.command_name;
 
-    /*  If the reply type is unknown, ignore it for future compatibility  */
-    if (strcmp(reply_name, "reply") && strcmp(reply_name, "ttl-expired")) {
+    /*  Check for known reply types.  */
+    if (!strcmp(reply_name, "reply")
+            || !strcmp(reply_name, "ttl-expired")) {
+        err = 0;
+    } else if (!strcmp(reply_name, "no-route")) {
+        err = ENETUNREACH;
+    } else if (!strcmp(reply_name, "network-down")) {
+        err = ENETDOWN;
+    } else {
+        /*  If the reply type is unknown, ignore it  */
         return;
     }
 
@@ -700,7 +709,7 @@ void handle_command_reply(
     if (parse_reply_arguments
         (ctl, &reply, &fromaddress, &round_trip_time, &mpls)) {
 
-        reply_func(ctl, seq_num, &mpls, (void *) &fromaddress,
+        reply_func(ctl, seq_num, err, &mpls, (void *) &fromaddress,
                    round_trip_time);
     }
 }

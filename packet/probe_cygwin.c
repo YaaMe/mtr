@@ -11,9 +11,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "probe.h"
@@ -44,6 +44,8 @@ void init_net_state(
         fprintf(stderr, "Failure opening ICMP %d\n", GetLastError());
         exit(EXIT_FAILURE);
     }
+    net_state->platform.ip4_socket_raw = false;
+    net_state->platform.ip6_socket_raw = false;
 }
 
 /*
@@ -102,14 +104,6 @@ void report_win_error(
     /*  It could be that we got no reply because of timeout  */
     if (err == IP_REQ_TIMED_OUT || err == IP_SOURCE_QUENCH) {
         printf("%d no-reply\n", command_token);
-    } else if (err == IP_DEST_HOST_UNREACHABLE
-               || err == IP_DEST_PORT_UNREACHABLE
-               || err == IP_DEST_PROT_UNREACHABLE
-               || err == IP_DEST_NET_UNREACHABLE
-               || err == IP_DEST_UNREACHABLE
-               || err == IP_DEST_NO_ROUTE
-               || err == IP_BAD_ROUTE || err == IP_BAD_DESTINATION) {
-        printf("%d no-route\n", command_token);
     } else if (err == ERROR_INVALID_NETNAME) {
         printf("%d address-not-available\n", command_token);
     } else if (err == ERROR_INVALID_PARAMETER) {
@@ -139,7 +133,7 @@ void WINAPI on_icmp_reply(
     struct sockaddr_storage remote_addr;
     struct sockaddr_in *remote_addr4;
     struct sockaddr_in6 *remote_addr6;
-    ICMP_ECHO_REPLY32 *reply4;
+    ICMP_ECHO_REPLY *reply4;
     ICMPV6_ECHO_REPLY *reply6;
 
     if (probe->platform.ip_version == 6) {
@@ -186,7 +180,18 @@ void WINAPI on_icmp_reply(
         icmp_type = ICMP_ECHOREPLY;
     } else if (reply_status == IP_TTL_EXPIRED_TRANSIT
                || reply_status == IP_TTL_EXPIRED_REASSEM) {
+
         icmp_type = ICMP_TIME_EXCEEDED;
+    } else if (reply_status == IP_DEST_HOST_UNREACHABLE
+               || reply_status == IP_DEST_PORT_UNREACHABLE
+               || reply_status == IP_DEST_PROT_UNREACHABLE
+               || reply_status == IP_DEST_NET_UNREACHABLE
+               || reply_status == IP_DEST_UNREACHABLE
+               || reply_status == IP_DEST_NO_ROUTE
+               || reply_status == IP_BAD_ROUTE
+               || reply_status == IP_BAD_DESTINATION) {
+
+        icmp_type = ICMP_DEST_UNREACH;
     }
 
     if (icmp_type != -1) {
@@ -230,13 +235,13 @@ void icmp_send_probe(
         timeout = 1;
     }
 
-    memset(&option, 0, sizeof(IP_OPTION_INFORMATION32));
+    memset(&option, 0, sizeof(IP_OPTION_INFORMATION));
     option.Ttl = param->ttl;
 
     if (param->ip_version == 6) {
         reply_size = sizeof(ICMPV6_ECHO_REPLY) + payload_size;
     } else {
-        reply_size = sizeof(ICMP_ECHO_REPLY32) + payload_size;
+        reply_size = sizeof(ICMP_ECHO_REPLY) + payload_size;
     }
 
     probe->platform.reply4 = malloc(reply_size);
@@ -326,7 +331,8 @@ void send_probe(
     char payload[PACKET_BUFFER_SIZE];
     int payload_size;
 
-    if (resolve_probe_addresses(param, &dest_sockaddr, &src_sockaddr)) {
+    if (resolve_probe_addresses(net_state, param, &dest_sockaddr,
+                &src_sockaddr)) {
         printf("%d invalid-argument\n", param->command_token);
         return;
     }

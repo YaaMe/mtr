@@ -11,15 +11,17 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "config.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <time.h>
 
@@ -249,4 +251,27 @@ void display_clear(
     if (ctl->DisplayMode == DisplayCurses)
         mtr_curses_clear(ctl);
 #endif
+}
+
+
+/*
+    Given an errno error code corresponding to a host entry, return a
+    user readable error string.
+*/
+char *host_error_to_string(
+    int err)
+{
+    if (err == ENETUNREACH) {
+        return "no route to host";
+    }
+
+    if (err == ENETDOWN) {
+        return "network down";
+    }
+
+    if (err == 0) {
+        return "waiting for reply";
+    }
+
+    return strerror(err);
 }

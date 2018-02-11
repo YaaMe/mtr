@@ -11,9 +11,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #ifndef PROBE_CYGWIN_H
@@ -60,7 +60,7 @@ struct probe_platform_t {
     int ip_version;
 
     union {
-        ICMP_ECHO_REPLY32 *reply4;
+        ICMP_ECHO_REPLY *reply4;
         ICMPV6_ECHO_REPLY *reply6;
     };
 };
@@ -69,6 +69,8 @@ struct probe_platform_t {
 struct net_state_platform_t {
     HANDLE icmp4;
     HANDLE icmp6;
+    bool ip4_socket_raw;
+    bool ip6_socket_raw;
 };
 
 #endif

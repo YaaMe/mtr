@@ -11,14 +11,15 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "config.h"
 
 #include <errno.h>
+#include <ifaddrs.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,6 +52,7 @@ static void sockaddrtop(
 struct nethost {
     ip_t addr;
     ip_t addrs[MAXPATH];        /* for multi paths byMin */
+    int err;
     int xmit;
     int returned;
     int sent;
@@ -185,11 +187,37 @@ static void net_send_query(
 }
 
 
-/* We got a return on something we sent out.  Record the address and
-   time.  */
+/*
+    Mark a sequence entry as completed and return the host index
+    being probed.
+
+    Returns -1 in the case of an invalid sequence number.
+*/
+static int mark_sequence_complete(
+    int seq)
+{
+    if ((seq < 0) || (seq >= MaxSequence)) {
+        return -1;
+    }
+
+    if (!sequence[seq].transit) {
+        return -1;
+    }
+    sequence[seq].transit = 0;
+
+    return sequence[seq].index;
+}
+
+
+/*
+    A probe has successfully completed.
+
+    Record the round trip time and address of the responding host.
+*/
 static void net_process_ping(
     struct mtr_ctl *ctl,
     int seq,
+    int err,
     struct mplslen *mpls,
     ip_t * addr,
     int totusec)
@@ -206,16 +234,12 @@ static void net_process_ping(
 
     addrcpy((void *) &addrcopy, (char *) addr, ctl->af);
 
-    if ((seq < 0) || (seq >= MaxSequence)) {
+    index = mark_sequence_complete(seq);
+    if (index < 0) {
         return;
     }
 
-    if (!sequence[seq].transit) {
-        return;
-    }
-    sequence[seq].transit = 0;
-
-    index = sequence[seq].index;
+    host[index].err = err;
 
     if (addrcmp((void *) &(host[index].addr),
                 (void *) &ctl->unspec_addr, ctl->af) == 0) {
@@ -323,6 +347,15 @@ ip_t *net_addrs(
     int i)
 {
     return (ip_t *) & (host[at].addrs[i]);
+}
+
+/*
+    Get the error code corresponding to a host entry.
+*/
+int net_err(
+    int at)
+{
+    return host[at].err;
 }
 
 void *net_mpls(
@@ -443,6 +476,13 @@ int net_max(
     for (at = 0; at < ctl->maxTTL - 1; at++) {
         if (addrcmp((void *) &(host[at].addr),
                     (void *) remoteaddress, ctl->af) == 0) {
+            return at + 1;
+        } else if (host[at].err != 0) {
+            /*
+                If a hop has returned an ICMP error
+                (such as "no route to host") then we'll consider that the
+                final hop.
+            */
             return at + 1;
         } else if (addrcmp((void *) &(host[at].addr),
                            (void *) &ctl->unspec_addr, ctl->af) != 0) {
@@ -582,6 +622,61 @@ static void net_validate_interface_address(
 
 
 /*
+    Given the name of a network interface and a preferred address
+    family (IPv4 or IPv6), find the source IP address for sending
+    probes from that interface.
+*/
+static void net_find_interface_address_from_name(
+    struct sockaddr_storage *addr,
+    int address_family,
+    const char *interface_name)
+{
+    struct ifaddrs *ifaddrs;
+    struct ifaddrs *interface;
+    int found_interface_name = 0;
+
+    if (getifaddrs(&ifaddrs) != 0) {
+        error(EXIT_FAILURE, errno, "getifaddrs failure");
+    }
+
+    interface = ifaddrs;
+    while (interface != NULL) {
+        if (!strcmp(interface->ifa_name, interface_name)) {
+            found_interface_name = 1;
+
+            if (interface->ifa_addr->sa_family == address_family) {
+                if (address_family == AF_INET) {
+                    memcpy(addr,
+                        interface->ifa_addr, sizeof(struct sockaddr_in));
+                    freeifaddrs(ifaddrs);
+
+                    return;
+                } else if (address_family == AF_INET6) {
+                    memcpy(addr,
+                        interface->ifa_addr, sizeof(struct sockaddr_in6));
+                    freeifaddrs(ifaddrs);
+
+                    return;
+                }
+            }
+        }
+
+        interface = interface->ifa_next;
+    }
+
+    if (!found_interface_name) {
+        error(EXIT_FAILURE, 0, "no such interface");
+    } else if (address_family == AF_INET) {
+        error(EXIT_FAILURE, 0, "interface missing IPv4 address");
+    } else if (address_family == AF_INET6) {
+        error(EXIT_FAILURE, 0, "interface missing IPv6 address");
+    } else {
+        error(EXIT_FAILURE, 0, "interface missing address");
+    }
+}
+
+
+/*
   Find the local address we will use to sent to the remote
   host by connecting a UDP socket and checking the address
   the socket is bound to.
@@ -672,6 +767,11 @@ int net_open(
 
     if (ctl->InterfaceAddress) {
         net_validate_interface_address(ctl->af, ctl->InterfaceAddress);
+    } else if (ctl->InterfaceName) {
+        net_find_interface_address_from_name(
+            &sourcesockaddr_struct, ctl->af, ctl->InterfaceName);
+
+        sockaddrtop(sourcesockaddr, localaddr, sizeof(localaddr));
     } else {
         net_find_local_address();
     }

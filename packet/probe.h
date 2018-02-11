@@ -11,9 +11,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #ifndef PROBE_H
@@ -79,6 +79,9 @@ struct probe_param_t {
 
     /*  The number of seconds to wait before assuming the probe was lost  */
     int timeout;
+
+    /*  true is the probe is to test byte order */
+    bool is_probing_byte_order;
 };
 
 /*  Tracking information for an outstanding probe  */
@@ -170,6 +173,7 @@ int decode_address_string(
     struct sockaddr_storage *address);
 
 int resolve_probe_addresses(
+    struct net_state_t *net_state,
     const struct probe_param_t *param,
     struct sockaddr_storage *dest_sockaddr,
     struct sockaddr_storage *src_sockaddr);
