@@ -36,7 +36,7 @@ int ipipdb_init(const char *ipdb) {
     fseek(file, 0, SEEK_SET);
 
     ipip.data = (byte *) malloc(size * sizeof(byte));
-    fread(ipip.data, sizeof(byte), (size_t) size, file);
+    size_t r = fread(ipip.data, sizeof(byte), (size_t) size, file);
 
     if (r == 0) {
         return 0;
