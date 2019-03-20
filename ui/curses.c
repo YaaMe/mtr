@@ -3,7 +3,7 @@
     Copyright (C) 1997,1998  Matt Kimball
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
@@ -365,6 +365,7 @@ int mtr_curses_keyaction(
             ("  b <c>   set ping bit pattern to c(0..255) or random(c<0)\n");
         printw("  Q <t>   set ping packet's TOS to t\n");
         printw("  u       switch between ICMP ECHO and UDP datagrams\n");
+        printw("  t       switch between ICMP ECHO and TCP\n");
 #ifdef HAVE_IPINFO
         printw("  y       switching IP info\n");
         printw("  z       toggle ASN info on/off\n");
@@ -453,7 +454,7 @@ static void mtr_curses_hosts(
             hd_len = 0;
             for (i = 0; i < MAXFLD; i++) {
                 /* Ignore options that don't exist */
-                /* On the other hand, we now check the input side. Shouldn't happen, 
+                /* On the other hand, we now check the input side. Shouldn't happen,
                    can't be careful enough. */
                 j = ctl->fld_index[ctl->fld_active[i]];
                 if (j == -1)
@@ -665,7 +666,7 @@ static void mtr_curses_graph(
             attron(A_BOLD);
             printw("(%s)", host_error_to_string(err));
         }
-            printw("???");
+
         attroff(A_BOLD);
 
         getyx(stdscr, y, __unused_int);
@@ -831,3 +832,4 @@ void mtr_curses_clear(
     mtr_curses_close();
     mtr_curses_open(ctl);
 }
+
