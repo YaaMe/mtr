@@ -46,6 +46,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <locale.h>
 
 #include "mtr.h"
 #include "mtr-curses.h"
@@ -728,6 +729,16 @@ int main(
     int argc,
     char **argv)
 {
+    setlocale(LC_ALL, "");  // support chinese output
+    struct hostent *host = NULL;
+    struct addrinfo hints, *res;
+    int gai_error;
+    struct hostent trhost;
+    char *alptr[2];
+    struct sockaddr_in *sa4;
+#ifdef ENABLE_IPV6
+    struct sockaddr_in6 *sa6;
+#endif
     names_t *names_head = NULL;
     names_t *names_walk;
 
