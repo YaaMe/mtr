@@ -498,14 +498,6 @@ static void mtr_curses_hosts(
                         printw("%s %s", name, ipip_location);
                 } else {
                     printw("%s %s", strlongip(ctl->af, addrs), ipip_location);
-                }
-                for (k = 0; k < mplss->labels && ctl->enablempls; k++) {
-                    printw("\n    [MPLS: Lbl %lu TC %u S %u TTL %u]",
-                           mplss->label[k], mplss->tc[k], mplss->s[k],
-                           mplss->ttl[k]);
-                }
-                attroff(A_BOLD);
-            }
         } else {
             attron(A_BOLD);
             printw("(%s)", host_error_to_string(err));
@@ -830,3 +822,4 @@ void mtr_curses_clear(
     mtr_curses_close();
     mtr_curses_open(ctl);
 }
+
