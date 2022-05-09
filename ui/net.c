@@ -709,7 +709,7 @@ static void net_find_local_address(
     *sockaddr_port_offset(&remote_sockaddr) = htons(1);
 
     if (connect
-        (udp_socket, (struct sockaddr *) &remote_sockaddr, sockaddr_size(&remote_sockaddr))) {
+        (udp_socket, (struct sockaddr *) &remote_sockaddr, addr_length)) {
 #ifdef __linux__
         /* Linux doesn't require source address, so we can support
          * a case when mtr is run against unreachable host (that can become

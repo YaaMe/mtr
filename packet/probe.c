@@ -345,7 +345,6 @@ int find_source_addr(
     if (connect(sock, (struct sockaddr *) &dest_with_port, len) == 0) {
         if (getsockname(sock, (struct sockaddr *) srcaddr, &len)) {
             close(sock);
-            probe_err = "getsockname";
             return -1;
         }
     } else {
@@ -354,7 +353,6 @@ int find_source_addr(
          * a case when mtr is run against unreachable host (that can become
          * reachable) */
         if (errno != EHOSTUNREACH) {
-            probe_err = "not hostunreach";
             close(sock);
             return -1;
         }
