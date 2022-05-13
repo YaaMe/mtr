@@ -435,7 +435,7 @@ static void mtr_curses_hosts(
             if (is_printii(ctl))
                 printw("%s", fmt_ipinfo(ctl, addr));
 #endif
-            const char *ipip_location = ipip_get_location(ctl, addr);
+            const char *ipip_location = ipip_get_location(ctl, strlongip(ctl->af, addr));
             if (name != NULL) {
                 if (ctl->show_ips)
                     printw("%s (%s) %s", name, strlongip(ctl->af, addr), ipip_location);
@@ -478,7 +478,7 @@ static void mtr_curses_hosts(
                 mplss = net_mplss(at, i);
                 if (addrcmp(addrs, addr, ctl->af) == 0)
                     continue;
-                if (addrcmp(addrs, &ctl->unspec_addr,ctl->af) == 0)
+                if (addrcmp(addrs, &ctl->unspec_addr, ctl->af) == 0)
                     break;
 
                 name = dns_lookup(ctl, addrs);
@@ -498,6 +498,14 @@ static void mtr_curses_hosts(
                         printw("%s %s", name, ipip_location);
                 } else {
                     printw("%s %s", strlongip(ctl->af, addrs), ipip_location);
+                }
+                for (k = 0; k < mplss->labels && ctl->enablempls; k++) {
+                    printw("\n    [MPLS: Lbl %lu Exp %u S %u TTL %u]",
+                           mplss->label[k], mplss->tc[k], mplss->s[k],
+                           mplss->ttl[k]);
+                }
+                attron(A_BOLD);
+            }
         } else {
             attron(A_BOLD);
             printw("(%s)", host_error_to_string(err));
@@ -822,4 +830,3 @@ void mtr_curses_clear(
     mtr_curses_close();
     mtr_curses_open(ctl);
 }
-

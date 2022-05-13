@@ -8,24 +8,27 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-const char *ipip_get_location(struct mtr_ctl *ctl, ip_t *ip) {
-    ipipdb_init("/usr/local/share/17monipdb.datx");
+const char *ipip_get_location(struct mtr_ctl *ctl, const char *ip) {
+    // result buffer
     static char buf[256];
     buf[0] = '\0';
-    unsigned int res_ip;
-#ifdef ENABLE_IPV6
-#define ip6 ip->s6_addr
-    if (ctl->af == AF_INET) {
-        unsigned int be_ip = *(unsigned int *)ip6;
-        res_ip = htonl(be_ip);
-    } else {
+
+    // init ipdb reader
+    char * defaultDB = "/usr/local/share/17monipdb.ipdb";
+    ipdb_reader *reader;
+    int err = ipdb_reader_new(defaultDB, &reader);
+    if (err) {
+        // fail to init db, return empty
         return buf;
     }
-#else
-    res_ip = ntohl(ip->s_addr);
-#endif
+
+    const char *lang[2];
+    lang[0] = "CN";
+    lang[1] = "EN";
+
     strcpy(buf, "[");
-    ipipdb_find(res_ip, buf + 1);
+    ipipdb_find(reader, ip, lang[0], buf + 1);
+//    ipipdb_find(res_ip, buf + 1);
     strcat(buf, "]");
     return buf;
 }
