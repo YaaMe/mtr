@@ -8,18 +8,29 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+char *defaultDB = "/usr/local/share/17monipdb.ipdb";
+ipdb_reader *reader;
+int exists = 0;
+int load_reader() {
+    int err = ipdb_reader_new(defaultDB, &reader);
+    if (err) {
+        // fail to init db, return empty
+        return err;
+    }
+    exists = 1;
+    return 0;
+}
 const char *ipip_get_location(struct mtr_ctl *ctl, const char *ip) {
     // result buffer
     static char buf[256];
     buf[0] = '\0';
 
     // init ipdb reader
-    char * defaultDB = "/usr/local/share/17monipdb.ipdb";
-    ipdb_reader *reader;
-    int err = ipdb_reader_new(defaultDB, &reader);
-    if (err) {
-        // fail to init db, return empty
-        return buf;
+    if (!exists) {
+        int err = load_reader();
+        if (err) {
+            return buf;
+        }
     }
 
     const char *lang[2];

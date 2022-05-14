@@ -27,7 +27,11 @@ ipdb_meta_data *parse_meta_data(const char *meta_json) {
     json_error_t error;
 
     root = json_loads(meta_json, 0, &error);
-
+    if(!root) {
+        fprintf(stderr, "error: %s\n", error.text);
+        json_decref(root);
+        return 1;
+    }
     json_t *node_count, *total_size, *build, *ip_version, *fields, *lang;
     double node_count_number, total_size_number, build_number, ip_version_number;
     const char *fields_array, *language_object;
